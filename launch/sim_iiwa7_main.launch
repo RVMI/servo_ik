@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find servo_ik)/launch/sim_iiwa7_gazebo.launch"/>
+  <include file="$(find servo_ik)/launch/sim_iiwa7_servo_ik.launch"/>
+</launch>

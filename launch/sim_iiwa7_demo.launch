@@ -1,0 +1,9 @@
+<launch>
+  <arg name="namespace" default="iiwa"/>
+  <group ns="$(arg namespace)">
+    <node name="sim_iiwa7_demo_node"
+          type="sim_iiwa7_demo_node.py"
+          pkg="servo_ik"
+          output="screen"/>
+  </group>
+</launch>
