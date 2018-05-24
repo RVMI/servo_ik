@@ -9,7 +9,7 @@ from geometry_msgs.msg import PoseStamped
 from servo_ik import ServoIk
 from numpy import array, sin, cos, tan, arccos, clip, pi, sqrt, abs
 from numpy.linalg import norm
-from rospy import logdebug, loginfo, logwarn, logfatal
+from rospy import logdebug, loginfo, logwarn, logwarn_throttle, logfatal
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from utilities import tf2T, T2tf, pq_multiply, pq_inverse, q2r, pose2T
@@ -18,7 +18,9 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 class SimIiwa7ServoIkNode(object):
   def __init__(self):
     rospy.init_node('sim_iiwa7_servo_ik', log_level = rospy.INFO)
-    self.ik = ServoIk(rospy.get_param('/robot_description'))
+    self.ik = ServoIk(
+        rospy.get_param('/robot_description'),
+        rospy.get_param('/robot_description_semantic'))
 
     self.joint_names = None
 
@@ -45,9 +47,9 @@ class SimIiwa7ServoIkNode(object):
         jt.points.append(jtp)
         self.joint_trajectory_pub.publish(jt)
       else:
-        logwarn('ik solution not found')
+        logwarn_throttle(1.0, 'no inverse kinematics solution found')
     else:
-      logwarn('position not initialized')
+      logwarn_throttle(1.0, 'position not initialized')
 
 if __name__ == '__main__':
   sim_iiwa7_servo_ik_node = SimIiwa7ServoIkNode()

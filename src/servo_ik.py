@@ -1,31 +1,36 @@
 #! /usr/bin/env python
 
-import kdl_parser_py.urdf as kdlu
+import kdl_parser_py.urdf as URDF
+import srdfdom.srdf as SRDF
 import numpy as np
 import PyKDL as kdl
 import rospy
 import tf
 
 from numpy import pi, array
+from rospy import logdebug
 from tf.transformations import quaternion_multiply, quaternion_conjugate, euler_from_quaternion, quaternion_from_euler
 from utilities import saturate_infinite_norm
 
-SATURATION = 0.01
-MAX_ITERATIONS = 1000
+SATURATION = 0.1
+MAX_ITERATIONS = 100
+LINEAR_TOLERANCE = 1.0e-6
+ANGULAR_TOLERANCE = 1.0e-5
 
 class ServoIk(object):
   """
   IIWA Kinematics with PyKDL
   """
-  def __init__(self, urdf):
-    self._urdf = kdlu.urdf.URDF.from_xml_string(urdf)
-    self._tree = kdlu.treeFromUrdfModel(self._urdf)[1]
-    self._base_link = 'iiwa_link_0'
-    self._tip_link = 'iiwa_link_ee'
+  def __init__(self, urdf, srdf):
+    self._srdf = SRDF.Group.from_xml_string(srdf)
+    self._urdf = URDF.urdf.URDF.from_xml_string(urdf)
+    self._tree = URDF.treeFromUrdfModel(self._urdf)[1]
+    self._base_link = self._srdf.groups[0].chains[0].base_link
+    self._tip_link = self._srdf.groups[0].chains[0].tip_link
     self._tip_frame = kdl.Frame()
     self._chain = self._tree.getChain(self._base_link, self._tip_link)
     self._joint_names = self._urdf.joint_map.keys()
-    self._num_jnts = len(self._joint_names) - 2
+    self._num_jnts = self._chain.getNrOfJoints()
 
     # Joint limits
     self.lower_limits = []
@@ -57,7 +62,8 @@ class ServoIk(object):
       FEGB = FGB * FEB.Inverse()
 
       iterations = 0
-      while (FEGB.p.Norm() > 1.0e-4 or FEGB.M.GetRotAngle()[0] > 1.0e-3) and iterations < MAX_ITERATIONS:
+      while (FEGB.p.Norm() > LINEAR_TOLERANCE or FEGB.M.GetRotAngle()[0] > ANGULAR_TOLERANCE) \
+            and iterations < MAX_ITERATIONS:
         iterations += 1
 
         twist = kdl.Twist(FEGB.p, FEGB.M.GetRot())
@@ -76,6 +82,8 @@ class ServoIk(object):
           joints_array[i] += reduction * joint_velocities_array[i]
         self._fk_p.JntToCart(joints_array, FEB)
         FEGB = FGB * FEB.Inverse()
+
+      logdebug('amount of iterations needed: %s', iterations)
 
       if iterations >= MAX_ITERATIONS:
         return None
