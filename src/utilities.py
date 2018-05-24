@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
 from numpy import array, matrix, arccos, sqrt, clip, zeros
 from numpy.linalg import norm
+from PyKDL import Frame, Vector, Rotation
+from std_msgs.msg import Header
 from tf.transformations import euler_from_quaternion
 from tf.transformations import quaternion_about_axis
 from tf.transformations import quaternion_conjugate
@@ -80,3 +83,20 @@ def pose2T(pose):
            pose.pose.orientation.z,
            pose.pose.orientation.w]]
 
+def T2pose(T, frame_id):
+  return PoseStamped(
+      header = Header(
+        frame_id = frame_id),
+      pose = Pose(
+        position = Point(
+          x = T[0][0],
+          y = T[0][1],
+          z = T[0][2]),
+        orientation = Quaternion(
+          x = T[1][0],
+          y = T[1][1],
+          z = T[1][2],
+          w = T[1][3])))
+
+def F2T(F):
+  return [list(F.p), list(F.M.GetQuaternion())]

@@ -12,13 +12,13 @@ from numpy.linalg import norm
 from rospy import logdebug, loginfo, logwarn, logwarn_throttle, logfatal
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from utilities import tf2T, T2tf, pq_multiply, pq_inverse, q2r, pose2T
+from utilities import tf2T, T2tf, pose2T, T2pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 class SimIiwa7ServoIkNode(object):
   def __init__(self):
     rospy.init_node('sim_iiwa7_servo_ik', log_level = rospy.INFO)
-    self.ik = ServoIk(
+    self.kinematics = ServoIk(
         rospy.get_param('/robot_description'),
         rospy.get_param('/robot_description_semantic'))
 
@@ -26,18 +26,21 @@ class SimIiwa7ServoIkNode(object):
 
     self.joint_trajectory_pub = rospy.Publisher(
         'PositionJointInterface_trajectory_controller/command', JointTrajectory, queue_size = 1)
+    self.state_pose_pub = rospy.Publisher( 'state/pose', PoseStamped, queue_size = 1)
     self.joint_state_sub = rospy.Subscriber('joint_states', JointState, self.jointStateCb, queue_size = 1)
-    self.cartesian_pose_sub = rospy.Subscriber('cartesian_pose', PoseStamped, self.cartesianPoseCb, queue_size = 1)
+    self.command_pose_sub = rospy.Subscriber('command/pose', PoseStamped, self.cartesianPoseCb, queue_size = 1)
 
     rospy.spin()
 
   def jointStateCb(self, msg):
     self.joint_names = msg.name
     self.position = msg.position
+    self.state_pose_pub.publish(
+        T2pose(self.kinematics.forward(self.position), self.kinematics.base_link))
 
   def cartesianPoseCb(self, msg):
     if self.joint_names != None:
-      t = self.ik.solve(self.position, pose2T(msg))
+      t = self.kinematics.inverse(self.position, pose2T(msg))
       if t != None:
         jtp = JointTrajectoryPoint()
         jtp.positions = t

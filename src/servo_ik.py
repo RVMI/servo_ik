@@ -10,7 +10,7 @@ import tf
 from numpy import pi, array
 from rospy import logdebug
 from tf.transformations import quaternion_multiply, quaternion_conjugate, euler_from_quaternion, quaternion_from_euler
-from utilities import saturate_infinite_norm
+from utilities import saturate_infinite_norm, F2T
 
 SATURATION = 0.1
 MAX_ITERATIONS = 100
@@ -25,10 +25,10 @@ class ServoIk(object):
     self._srdf = SRDF.Group.from_xml_string(srdf)
     self._urdf = URDF.urdf.URDF.from_xml_string(urdf)
     self._tree = URDF.treeFromUrdfModel(self._urdf)[1]
-    self._base_link = self._srdf.groups[0].chains[0].base_link
-    self._tip_link = self._srdf.groups[0].chains[0].tip_link
+    self.base_link = self._srdf.groups[0].chains[0].base_link
+    self.tip_link = self._srdf.groups[0].chains[0].tip_link
     self._tip_frame = kdl.Frame()
-    self._chain = self._tree.getChain(self._base_link, self._tip_link)
+    self._chain = self._tree.getChain(self.base_link, self.tip_link)
     self._joint_names = self._urdf.joint_map.keys()
     self._num_jnts = self._chain.getNrOfJoints()
 
@@ -44,11 +44,21 @@ class ServoIk(object):
     self._fk_p = kdl.ChainFkSolverPos_recursive(self._chain)
     self._ik_v = kdl.ChainIkSolverVel_pinv(self._chain)
 
-  def solve(self, t, TGB):
-    """
-    Solve the inverse kinematics
-    """
-    if len(t) == self._num_jnts:
+  def forward(self, t):
+    if len(t) != self._num_jnts:
+      return None
+    else:
+      joints_array = kdl.JntArray(self._num_jnts)
+      for i in xrange(self._num_jnts):
+        joints_array[i] = t[i]
+      FEB = kdl.Frame()
+      self._fk_p.JntToCart(joints_array, FEB)
+      return F2T(FEB)
+
+  def inverse(self, t, TGB):
+    if len(t) != self._num_jnts:
+      return None
+    else:
       joints_array = kdl.JntArray(self._num_jnts)
       for i in xrange(self._num_jnts):
         joints_array[i] = t[i]
