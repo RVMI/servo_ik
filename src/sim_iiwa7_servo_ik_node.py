@@ -35,7 +35,7 @@ class SimIiwa7ServoIkNode(object):
 
   def cartesianPoseCb(self, msg):
     if self.joint_names != None:
-      t = self.ik.solve([0.0, 0.0, 0.0, -pi/2.0, 0.0, pi/2.0, 0.0], pose2T(msg))
+      t = self.ik.solve(self.position, pose2T(msg))
       if t != None:
         jtp = JointTrajectoryPoint()
         jtp.positions = t
