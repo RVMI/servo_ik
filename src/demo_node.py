@@ -10,9 +10,9 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-class SimIiwa7DemoNode(object):
+class DemoNode(object):
   def __init__(self):
-    rospy.init_node('sim_iiwa7_servo_ik', log_level = rospy.INFO)
+    rospy.init_node('servo_ik', log_level = rospy.INFO)
     rate = rospy.Rate(100)
     cartesian_pose_pub = rospy.Publisher('command/pose', PoseStamped, queue_size = 1)
 
@@ -30,4 +30,4 @@ class SimIiwa7DemoNode(object):
       rate.sleep()
 
 if __name__ == '__main__':
-  sim_iiwa7_demo_node = SimIiwa7DemoNode()
+  demo_node = DemoNode()

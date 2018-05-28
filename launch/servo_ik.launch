@@ -3,8 +3,8 @@
   <arg name="model" default="iiwa7"/>
   <param name="robot_description_semantic" textfile="$(find iiwa_moveit)/config/$(arg model).srdf" />
   <group ns="$(arg namespace)">
-    <node name="sim_iiwa7_servo_ik_node"
-          type="sim_iiwa7_servo_ik_node.py"
+    <node name="servo_ik"
+          type="servo_ik_node.py"
           pkg="servo_ik"
           output="screen"/>
   </group>

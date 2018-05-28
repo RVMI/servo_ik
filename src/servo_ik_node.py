@@ -15,9 +15,9 @@ from std_msgs.msg import Header
 from utilities import tf2T, T2tf, pose2T, T2pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-class SimIiwa7ServoIkNode(object):
+class ServoIkNode(object):
   def __init__(self):
-    rospy.init_node('sim_iiwa7_servo_ik', log_level = rospy.INFO)
+    rospy.init_node('servo_ik', log_level = rospy.INFO)
     self.kinematics = ServoIk(
         rospy.get_param('/robot_description'),
         rospy.get_param('/robot_description_semantic'))
@@ -55,4 +55,4 @@ class SimIiwa7ServoIkNode(object):
       logwarn_throttle(1.0, 'position not initialized')
 
 if __name__ == '__main__':
-  sim_iiwa7_servo_ik_node = SimIiwa7ServoIkNode()
+  servo_ik_node = ServoIkNode()
