@@ -1,9 +1,11 @@
 <launch>
-  <arg name="namespace" default="iiwa"/>
+  <arg name="namespace" default="hh"/>
   <group ns="$(arg namespace)">
     <node name="servo_ik"
           type="servo_ik_node.py"
           pkg="servo_ik"
-          output="screen"/>
+          output="screen">
+        <param name="group_name" value="$(arg namespace)_arm" />
+    </node>
   </group>
 </launch>

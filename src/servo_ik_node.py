@@ -20,14 +20,15 @@ class ServoIkNode(object):
     rospy.init_node('servo_ik', log_level = rospy.INFO)
     self.kinematics = ServoIk(
         rospy.get_param('/robot_description'),
-        rospy.get_param('/robot_description_semantic'))
+        rospy.get_param('/robot_description_semantic'),
+        rospy.get_param('~group_name'))
 
     self.joint_names = None
 
     self.joint_trajectory_pub = rospy.Publisher(
         'PositionJointInterface_trajectory_controller/command', JointTrajectory, queue_size = 1)
     self.state_pose_pub = rospy.Publisher( 'state/pose', PoseStamped, queue_size = 1)
-    self.joint_state_sub = rospy.Subscriber('joint_states', JointState, self.jointStateCb, queue_size = 1)
+    self.joint_state_sub = rospy.Subscriber('joint_states', JointState, self.jointStateCb, queue_size = 1)#rospy.get_namespace()+
     self.command_pose_sub = rospy.Subscriber('command/pose', PoseStamped, self.cartesianPoseCb, queue_size = 1)
 
     rospy.spin()
@@ -35,8 +36,9 @@ class ServoIkNode(object):
   def jointStateCb(self, msg):
     self.joint_names = msg.name
     self.position = msg.position
-    self.state_pose_pub.publish(
-        T2pose(self.kinematics.forward(self.position), self.kinematics.base_link))
+    ik = self.kinematics.forward(self.position)
+    if ik:
+        self.state_pose_pub.publish(T2pose(ik, self.kinematics.base_link))
 
   def cartesianPoseCb(self, msg):
     if self.joint_names != None:
@@ -46,7 +48,7 @@ class ServoIkNode(object):
         jtp.positions = t
         jtp.time_from_start = rospy.Duration.from_sec(0.5)
         jt = JointTrajectory()
-        jt.joint_names = self.joint_names
+        jt.joint_names = self.joint_names[0:self.kinematics._num_jnts]
         jt.points.append(jtp)
         self.joint_trajectory_pub.publish(jt)
       else:

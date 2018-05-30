@@ -21,12 +21,18 @@ class ServoIk(object):
   """
   IIWA Kinematics with PyKDL
   """
-  def __init__(self, urdf, srdf):
+  def __init__(self, urdf, srdf, group_name):
     self._srdf = SRDF.Group.from_xml_string(srdf)
     self._urdf = URDF.urdf.URDF.from_xml_string(urdf)
     self._tree = URDF.treeFromUrdfModel(self._urdf)[1]
-    self.base_link = self._srdf.groups[0].chains[0].base_link
-    self.tip_link = self._srdf.groups[0].chains[0].tip_link
+    group = None
+    for g in self._srdf.groups:
+        if g.name==group_name:
+            group = g
+    if not group:
+        raise Exception("[ServoIk] No group named {} found.".format(group_name))
+    self.base_link = group.chains[0].base_link
+    self.tip_link = group.chains[0].tip_link
     self._tip_frame = kdl.Frame()
     self._chain = self._tree.getChain(self.base_link, self.tip_link)
     self._joint_names = self._urdf.joint_map.keys()
@@ -44,19 +50,22 @@ class ServoIk(object):
     self._fk_p = kdl.ChainFkSolverPos_recursive(self._chain)
     self._ik_v = kdl.ChainIkSolverVel_pinv(self._chain)
 
+    rospy.loginfo("[ServoIk] Started ServoIk for group: {}".format(group_name))
+
   def forward(self, t):
-    if len(t) != self._num_jnts:
+    if len(t) < self._num_jnts:
+      rospy.logerr_throttle(5, "[ServoIk.forward] Wrong number of joints published. Published: {} Existing: {}".format(len(t), self._num_jnts))
       return None
-    else:
-      joints_array = kdl.JntArray(self._num_jnts)
-      for i in xrange(self._num_jnts):
-        joints_array[i] = t[i]
-      FEB = kdl.Frame()
-      self._fk_p.JntToCart(joints_array, FEB)
-      return F2T(FEB)
+    joints_array = kdl.JntArray(self._num_jnts)
+    for i in xrange(self._num_jnts):
+      joints_array[i] = t[i]
+    FEB = kdl.Frame()
+    self._fk_p.JntToCart(joints_array, FEB)
+    return F2T(FEB)
 
   def inverse(self, t, TGB):
-    if len(t) != self._num_jnts:
+    if len(t) < self._num_jnts:
+      rospy.logerr_throttle(5, "[ServoIk.inverse] Wrong number of joints published. Published: {} Existing: {}".format(len(t), self._num_jnts))
       return None
     else:
       joints_array = kdl.JntArray(self._num_jnts)
