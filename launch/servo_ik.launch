@@ -1,11 +1,12 @@
 <launch>
   <arg name="namespace" default="hh"/>
+  <arg name="group_name" default="$(arg namespace)_arm"/>
   <group ns="$(arg namespace)">
     <node name="servo_ik"
           type="servo_ik_node.py"
           pkg="servo_ik"
           output="screen">
-        <param name="group_name" value="$(arg namespace)_arm" />
+        <param name="group_name" value="$(arg group_name)" />
     </node>
   </group>
 </launch>

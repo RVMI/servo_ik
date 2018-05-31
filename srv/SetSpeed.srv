@@ -1,0 +1,5 @@
+# REQUEST
+float64 speed
+---
+# RESPONSE
+bool success

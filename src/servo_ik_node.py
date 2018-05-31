@@ -6,11 +6,12 @@ import tf2_ros
 import yaml
 
 from geometry_msgs.msg import PoseStamped
-from servo_ik import ServoIk
+from servo_ik_module import ServoIk
 from numpy import array, sin, cos, tan, arccos, clip, pi, sqrt, abs
 from numpy.linalg import norm
 from rospy import logdebug, loginfo, logwarn, logwarn_throttle, logfatal
 from sensor_msgs.msg import JointState
+from servo_ik.srv import SetSpeed, SetSpeedRequest, SetSpeedResponse
 from std_msgs.msg import Header
 from utilities import tf2T, T2tf, pose2T, T2pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -24,7 +25,9 @@ class ServoIkNode(object):
         rospy.get_param('~group_name'))
 
     self.joint_names = None
+    self.speed = 2.0
 
+    self.set_speed = rospy.Service('set_speed', SetSpeed, self.handleSetSpeed)
     self.joint_trajectory_pub = rospy.Publisher(
         'PositionJointInterface_trajectory_controller/command', JointTrajectory, queue_size = 1)
     self.state_pose_pub = rospy.Publisher( 'state/pose', PoseStamped, queue_size = 1)
@@ -32,6 +35,10 @@ class ServoIkNode(object):
     self.command_pose_sub = rospy.Subscriber('command/pose', PoseStamped, self.cartesianPoseCb, queue_size = 1)
 
     rospy.spin()
+
+  def handleSetSpeed(self, request):
+    self.speed = request.speed
+    return SetSpeedResponse(True)
 
   def jointStateCb(self, msg):
     self.joint_names = msg.name
@@ -46,7 +53,7 @@ class ServoIkNode(object):
       if t != None:
         jtp = JointTrajectoryPoint()
         jtp.positions = t
-        jtp.time_from_start = rospy.Duration.from_sec(0.5)
+        jtp.time_from_start = rospy.Duration.from_sec(self.speed)
         jt = JointTrajectory()
         jt.joint_names = self.joint_names[0:self.kinematics._num_jnts]
         jt.points.append(jtp)
