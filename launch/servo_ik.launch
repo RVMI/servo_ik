@@ -6,7 +6,10 @@
           type="servo_ik_node.py"
           pkg="servo_ik"
           output="screen">
-        <param name="group_name" value="$(arg group_name)" />
+      <param name="group_name" value="$(arg group_name)" />
+      <remap from="state/pose" to="state/CartesianPose"/>
+      <remap from="state/wrench" to="state/CartesianWrench"/>
+      <remap from="command/pose" to="command/CartesianPose"/>
     </node>
   </group>
 </launch>

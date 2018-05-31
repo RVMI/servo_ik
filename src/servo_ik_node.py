@@ -1,7 +1,9 @@
 #! /usr/bin/env python
 
 import actionlib
+import geometry_msgs.msg as geometry_msgs
 import rospy
+import std_msgs.msg as std_msgs
 import tf2_ros
 import yaml
 
@@ -25,7 +27,7 @@ class ServoIkNode(object):
         rospy.get_param('~group_name'))
 
     self.joint_names = None
-    self.speed = 2.0
+    self.speed = 5.0
 
     self.set_speed = rospy.Service('set_speed', SetSpeed, self.handleSetSpeed)
     self.joint_trajectory_pub = rospy.Publisher(
@@ -33,6 +35,7 @@ class ServoIkNode(object):
     self.state_pose_pub = rospy.Publisher( 'state/pose', PoseStamped, queue_size = 1)
     self.joint_state_sub = rospy.Subscriber('joint_states', JointState, self.jointStateCb, queue_size = 1)#rospy.get_namespace()+
     self.command_pose_sub = rospy.Subscriber('command/pose', PoseStamped, self.cartesianPoseCb, queue_size = 1)
+    self.state_wrench_pub = rospy.Publisher('state/wrench', geometry_msgs.WrenchStamped, queue_size = 1)
 
     rospy.spin()
 
@@ -40,16 +43,26 @@ class ServoIkNode(object):
     self.speed = request.speed
     return SetSpeedResponse(True)
 
+  def publishFakeWrench(self):
+    self.state_wrench_pub.publish(
+        geometry_msgs.WrenchStamped(
+            header = std_msgs.Header(frame_id = self.kinematics.tip_link),
+            wrench = geometry_msgs.Wrench(
+              force = geometry_msgs.Vector3(
+                x = 0.0, y = 0.0, z = 0.0))))
+
   def jointStateCb(self, msg):
     self.joint_names = msg.name
     self.position = msg.position
     ik = self.kinematics.forward(self.position)
     if ik:
         self.state_pose_pub.publish(T2pose(ik, self.kinematics.base_link))
+        self.publishFakeWrench()
 
   def cartesianPoseCb(self, msg):
     if self.joint_names != None:
       t = self.kinematics.inverse(self.position, pose2T(msg))
+      #t = self.kinematics.inverse([0.0, 0.0, 0.0, -pi/2.0, 0.0, pi/2.0, 0.0], pose2T(msg))
       if t != None:
         jtp = JointTrajectoryPoint()
         jtp.positions = t
@@ -59,7 +72,7 @@ class ServoIkNode(object):
         jt.points.append(jtp)
         self.joint_trajectory_pub.publish(jt)
       else:
-        logwarn_throttle(1.0, 'no inverse kinematics solution found')
+        logwarn_throttle(1.0, '[ServoIk] no inverse kinematics solution found')
     else:
       logwarn_throttle(1.0, 'position not initialized')
 

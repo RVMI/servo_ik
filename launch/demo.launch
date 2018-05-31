@@ -4,6 +4,10 @@
     <node name="demo_node"
           type="demo_node.py"
           pkg="servo_ik"
-          output="screen"/>
+          output="screen">
+      <remap from="state/pose" to="state/CartesianPose"/>
+      <remap from="state/wrench" to="state/CartesianWrench"/>
+      <remap from="command/pose" to="command/CartesianPose"/>
+    </node>
   </group>
 </launch>
