@@ -6,6 +6,8 @@ import tf2_ros
 import yaml
 
 from geometry_msgs.msg import PoseStamped
+import geometry_msgs.msg as geometry_msgs
+import std_msgs.msg as std_msgs
 from servo_ik import ServoIk
 from numpy import array, sin, cos, tan, arccos, clip, pi, sqrt, abs
 from numpy.linalg import norm
@@ -30,8 +32,18 @@ class ServoIkNode(object):
     self.state_pose_pub = rospy.Publisher( 'state/pose', PoseStamped, queue_size = 1)
     self.joint_state_sub = rospy.Subscriber('joint_states', JointState, self.jointStateCb, queue_size = 1)#rospy.get_namespace()+
     self.command_pose_sub = rospy.Subscriber('command/pose', PoseStamped, self.cartesianPoseCb, queue_size = 1)
+    self.state_wrench_pub = rospy.Publisher('state/wrench', geometry_msgs.WrenchStamped, queue_size = 1)
 
     rospy.spin()
+
+  def publishFakeWrench(self):
+    self.state_wrench_pub.publish(
+        geometry_msgs.WrenchStamped(
+            header = std_msgs.Header(frame_id = self.kinematics.tip_link),
+            wrench = geometry_msgs.Wrench(
+              force = geometry_msgs.Vector3(
+                x = 0.0, y = 0.0, z = 0.0))))
+
 
   def jointStateCb(self, msg):
     self.joint_names = msg.name
@@ -39,6 +51,7 @@ class ServoIkNode(object):
     ik = self.kinematics.forward(self.position)
     if ik:
         self.state_pose_pub.publish(T2pose(ik, self.kinematics.base_link))
+        self.publishFakeWrench()
 
   def cartesianPoseCb(self, msg):
     if self.joint_names != None:
@@ -52,7 +65,7 @@ class ServoIkNode(object):
         jt.points.append(jtp)
         self.joint_trajectory_pub.publish(jt)
       else:
-        logwarn_throttle(1.0, 'no inverse kinematics solution found')
+        logwarn_throttle(1.0, '[ServoIk] no inverse kinematics solution found')
     else:
       logwarn_throttle(1.0, 'position not initialized')
 
