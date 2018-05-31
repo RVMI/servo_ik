@@ -27,7 +27,7 @@ class ServoIkNode(object):
         rospy.get_param('~group_name'))
 
     self.joint_names = None
-    self.speed = 5.0
+    self.speed = 0.5
 
     self.set_speed = rospy.Service('set_speed', SetSpeed, self.handleSetSpeed)
     self.joint_trajectory_pub = rospy.Publisher(
